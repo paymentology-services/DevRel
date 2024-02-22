@@ -62,15 +62,12 @@ jobs:
           oidc-provider-name: github
           oidc-audience: jfrog-github
 
-      # needs open access. Doesn't work with arc-ttk runners
-      - name: Install JQ
-        run: |
-          which jq || ( apt-get update && apt-get install jq -qqy )
-
       - name: Build, unit test, integration test with Maven
         shell: bash
         run: |
+          set -x
           cd ${MAVEN_ROOT_DIR}
+          jf c show
           jf mvn $MAVEN_PACKAGE_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean deploy --file pom.xml -s $CI_SETTINGS_FILE
           jf rt bp
 
