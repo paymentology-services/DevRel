@@ -4,12 +4,16 @@
     <parent>
         <groupId>org.jfrog.test</groupId>
         <artifactId>multi</artifactId>
-        <version>3.7-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>multi3</artifactId>
     <packaging>war</packaging>
     <name>Multi 3</name>
+
+    <properties>
+        <revision>local-SNAPSHOT</revision>
+    </properties>
 
     <dependencies>
         <!-- depends on another project (should include transitive) -->
@@ -18,7 +22,7 @@
             <artifactId>multi1</artifactId>
            <version>${project.parent.version}</version>
         </dependency>
-       
+
 
         <!-- runtime dependency -->
         <dependency>
