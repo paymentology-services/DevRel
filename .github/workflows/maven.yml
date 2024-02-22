@@ -1,0 +1,85 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Maven CI
+
+env:
+  DEPLOY_TOKEN: ${{ secrets.MAVEN_RELEASES_REGISTRY_READ_ONLY }}
+
+  # Projects can extend the default MAVEN_CLI_OPTS using this variable
+  MAVEN_CLI_OPTS_EXT: ""
+
+  # `installAtEnd` and `deployAtEnd` are only effective with recent version of the corresponding plugins.
+  MAVEN_CLI_OPTS: "-U --batch-mode --errors --fail-at-end -DinstallAtEnd=true -DdeployAtEnd=true"
+
+  # override this if maven should be run in a sub-directory
+  MAVEN_ROOT_DIR: Maven_Challenge
+
+  JAVA_VERSION: '17'
+
+  IGNORE_TESTS_MAVEN_CLI_OPTS: "-Ddependency-check.skip=true -DskipTests=true -Dmaven.test.skip=true -Ddocker.skip=true"
+
+on:
+  push:
+    branches: [ 'main' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+
+  maven-build:
+    env:
+      MAVEN_PACKAGE_CLI_OPTS: "-Dmaven.install.skip -Ddependency-check.skip=true"
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2/repository
+          key: ${{ runner.os }}-${{ github.job }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v4
+        env:
+          JF_URL: ${{ vars.JF_URL }}
+        with:
+          oidc-provider-name: github
+          oidc-audience: jfrog-github
+
+      - name: Build, unit test, integration test with Maven
+        shell: bash
+        id: set-revision
+        env:
+            GIT_SHA: ${{ github.sha }}
+        run: |
+          short_sha="$(echo "$GIT_SHA" | cut -c-8)"
+          revision="${short_sha}-SNAPSHOT"
+          echo "revision=$revision" >> $GITHUB_OUTPUT
+
+          cd ${MAVEN_ROOT_DIR}
+          jf mvn -Drevision=$revision $MAVEN_PACKAGE_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean install --file pom.xml
+          jf rt bp
+
+      - name: Archive target directory
+        uses: actions/upload-artifact@v4
+        with:
+          name: target-without-classes
+          path: |
+            **/target
+            !**/target/classes

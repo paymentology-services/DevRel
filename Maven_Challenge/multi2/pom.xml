@@ -4,11 +4,11 @@
     <parent>
         <groupId>org.jfrog.test</groupId>
         <artifactId>multi</artifactId>
-        <version>3.7-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <properties>
-        <daversion>${project.parent.version}</daversion>
+        <revision>local-SNAPSHOT</revision>
     </properties>
 
     <artifactId>multi2</artifactId>
