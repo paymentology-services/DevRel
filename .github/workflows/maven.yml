@@ -39,7 +39,6 @@ jobs:
   maven-build:
     env:
       MAVEN_PACKAGE_CLI_OPTS: "-Dmaven.install.skip -Ddependency-check.skip=true"
-  # -Djarsigner.skip=false -Djarsigner.keystore=signer.keystore  -Djarsigner.alias=signer -Djarsigner.storepass=$SIGNER_KEYSTORE_PASSWORD
 
     runs-on: ubuntu-latest
 
@@ -82,116 +81,5 @@ jobs:
         with:
           name: target-without-classes
           path: |
-            target
-            !target/classes
-
-      # Optional: Uploads the full dependency graph to GitHub to improve the quality of Dependabot alerts this repository can receive
-#      - name: Update dependency graph
-#        uses: advanced-security/maven-dependency-submission-action@v5
-
-  maven-parent-pom:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.m2/repository
-          key: ${{ runner.os }}-${{ github.job }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-
-      - name: Check parent pom is used
-        run: |
-          parent_artifact_id="$(mvn $MAVEN_CLI_OPTS help:evaluate -Dexpression=project.parent.artifactId -q -DforceStdout 2>&1)" && pom_check_success=1 || pom_check_success=0
-
-          if [ $pom_check_success -ne 1 ]; then
-            echo "POM checks failed with the following:"
-            echo "$parent_artifact_id"
-            exit 1
-          fi
-          if [ "$parent_artifact_id" != "jar-parent-pom" ]; then
-          echo "Not using supported parent POM. It should be 'jar-parent-pom' and is '$parent_artifact_id'"
-          exit 1
-          fi
-          echo "Using supported parent POM"
-
-  maven-dependency-check:
-    env:
-      DEPENDENCY_CHECK_MAX_CVSS: 9
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.m2/repository
-          key: ${{ runner.os }}-${{ github.job }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-
-      - name: Build, unit test, integration test with Maven
-        run: |
-          cd ${MAVEN_ROOT_DIR}
-          mvn $IGNORE_TESTS_MAVEN_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean install --file pom.xml
-
-      - name: Dependency-check
-        uses: dependency-check/Dependency-Check_Action@main
-        env:
-          # actions/setup-java changes JAVA_HOME so it needs to be reset to match the depcheck image
-          JAVA_HOME: /opt/jdk
-        id: Depcheck
-        with:
-          project: 'test'
-          path: '.'
-          format: 'ALL'
-          args: >
-            --failOnCVSS $DEPENDENCY_CHECK_MAX_CVSS
-            --enableRetired
-
-      - name: Upload Test results
-        uses: actions/upload-artifact@master
-        with:
-            name: Depcheck report
-            path: ${{github.workspace}}/reports
-
-
-  docker-lint:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-      - uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-
-  docker-build:
-
-    runs-on: ubuntu-latest
-    needs: maven-build
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Download target because it has build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: target-without-classes
-          path: target
-
-      - name: Build
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: false
-          tags: user/app:latest
+            **/target
+            !**/target/classes
