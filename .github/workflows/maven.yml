@@ -9,7 +9,6 @@
 name: Maven CI
 
 env:
-  CI_SETTINGS_FILE: ci_settings.xml
   DEPLOY_TOKEN: ${{ secrets.MAVEN_RELEASES_REGISTRY_READ_ONLY }}
 
   # Projects can extend the default MAVEN_CLI_OPTS using this variable
@@ -52,7 +51,9 @@ jobs:
         with:
           path: |
             ~/.m2/repository
-          key: ${{ runner.os }}-${{ github.job }}-maven-repository-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-${{ github.job }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Setup JFrog CLI
         uses: jfrog/setup-jfrog-cli@v4
@@ -68,7 +69,7 @@ jobs:
           set -x
           cd ${MAVEN_ROOT_DIR}
           jf c show
-          jf mvn $MAVEN_PACKAGE_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean deploy --file pom.xml -s $CI_SETTINGS_FILE
+          jf mvn $MAVEN_PACKAGE_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean deploy --file pom.xml
           jf rt bp
 
       - name: Archive target directory
@@ -93,11 +94,14 @@ jobs:
         with:
           path: |
             ~/.m2/repository
-          key: ${{ runner.os }}-${{ github.job }}-maven-repository-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-${{ github.job }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
 
       - name: Check parent pom is used
         run: |
-          parent_artifact_id="$(mvn $MAVEN_CLI_OPTS help:evaluate -Dexpression=project.parent.artifactId -q -DforceStdout -s $CI_SETTINGS_FILE 2>&1)" && pom_check_success=1 || pom_check_success=0
+          parent_artifact_id="$(mvn $MAVEN_CLI_OPTS help:evaluate -Dexpression=project.parent.artifactId -q -DforceStdout 2>&1)" && pom_check_success=1 || pom_check_success=0
 
           if [ $pom_check_success -ne 1 ]; then
             echo "POM checks failed with the following:"
@@ -123,12 +127,15 @@ jobs:
         with:
           path: |
             ~/.m2/repository
-          key: ${{ runner.os }}-${{ github.job }}-maven-repository-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-${{ github.job }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
 
       - name: Build, unit test, integration test with Maven
         run: |
           cd ${MAVEN_ROOT_DIR}
-          mvn $IGNORE_TESTS_MAVEN_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean install --file pom.xml -s $CI_SETTINGS_FILE
+          mvn $IGNORE_TESTS_MAVEN_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean install --file pom.xml
 
       - name: Dependency-check
         uses: dependency-check/Dependency-Check_Action@main
