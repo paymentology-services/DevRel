@@ -2,8 +2,8 @@ version: 1
 type: maven
 resolver:
   serverId: setup-jfrog-cli-server
-  snapshotRepo: maven-central-maven-remote
-  releaseRepo: maven-central-maven-remote
+  snapshotRepo: maven-challenge
+  releaseRepo: maven-challenge
 deployer:
   serverId: setup-jfrog-cli-server
   snapshotRepo: maven-challenge

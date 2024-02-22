@@ -65,11 +65,16 @@ jobs:
 
       - name: Build, unit test, integration test with Maven
         shell: bash
+        id: set-revision
+        env:
+            GIT_SHA: ${{ github.sha }}
         run: |
-          set -x
+          short_sha="$(echo "$GIT_SHA" | cut -c-8)"
+          revision="${short_sha}-SNAPSHOT"
+          echo "revision=$revision" >> $GITHUB_OUTPUT
+
           cd ${MAVEN_ROOT_DIR}
-          jf c show
-          jf mvn $MAVEN_PACKAGE_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean deploy --file pom.xml
+          jf mvn -Drevision=$revision $MAVEN_PACKAGE_CLI_OPTS $MAVEN_CLI_OPTS $MAVEN_CLI_OPTS_EXT clean install --file pom.xml
           jf rt bp
 
       - name: Archive target directory
